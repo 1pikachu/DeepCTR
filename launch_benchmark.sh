@@ -10,7 +10,7 @@ function main {
 
     # requirements
     pip uninstall deepctr -y
-    python setup.py install
+    pip install deepctr==0.9.2
     cd examples
 
     # if multiple use 'xxx,xxx,xxx'

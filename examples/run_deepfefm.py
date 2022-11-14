@@ -105,7 +105,7 @@ if __name__ == "__main__":
         latency = total_time / total_sample * 1000
         throughput = total_sample / total_time
         print("### Latency:: {:.2f} ms".format(latency))
-        print("### Throughput: {:.3f} samples/s".format(throughput))
+        print("### inference Throughput: {:.3f} samples/s".format(throughput))
 
     if args.predict:
         # predict
