@@ -92,7 +92,9 @@ if __name__ == "__main__":
         num_iter = min(num_iter, args.num_iter)
         for i in range(args.epochs):
             if args.profile and i == (args.epochs // 2):
-                tf.profiler.experimental.start(timeline_dir)
+                print("---- collect tensorboard")
+                options = tf.profiler.experimental.ProfilerOptions(host_tracer_level = 3, python_tracer_level = 1, device_tracer_level = 1)
+                tf.profiler.experimental.start('./tensorboard_data', options = options)
             start_time = time.time()
             model.evaluate(test_model_input, steps=num_iter, batch_size=args.batch_size)
             end_time = time.time()
@@ -102,6 +104,7 @@ if __name__ == "__main__":
                 total_sample += num_iter * args.batch_size
             if args.profile and i == (args.epochs // 2):
                 tf.profiler.experimental.stop()
+                print("---- collect tensorboard end")
         latency = total_time / total_sample * 1000
         throughput = total_sample / total_time
         print("### Latency:: {:.2f} ms".format(latency))

@@ -54,6 +54,7 @@ function generate_core {
         elif [ "${device}" == "cuda" ];then
             OOB_EXEC_HEADER=" CUDA_VISIBLE_DEVICES=${device_array[i]} "
         fi
+	OOB_EXEC_HEADER+=" ${OOB_EXTRA_HEADER} "
         printf " ${OOB_EXEC_HEADER} \
 	    python run_deepfefm.py --evaluate \
 		--epochs 20 --num_iter ${num_iter} --num_warmup 3 \
