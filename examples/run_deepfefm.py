@@ -17,6 +17,7 @@ parser.add_argument("--train", action='store_true', help="training.")
 parser.add_argument("--evaluate", action='store_true', help="evaluation.")
 parser.add_argument("--predict", action='store_true', help="predict.")
 parser.add_argument("--profile", action='store_true', help="profile.")
+parser.add_argument("--tensorboard", action='store_true')
 parser.add_argument("-b", "--batch_size", type=int, default=1, help="batch size")
 parser.add_argument("--precision", type=str, default='float32', help="float32, int8 or float16")
 parser.add_argument("--epochs", type=int, default=20, help="training epochs")
@@ -91,18 +92,18 @@ if __name__ == "__main__":
         num_iter = int(len(test_model_input) / args.batch_size)
         num_iter = min(num_iter, args.num_iter)
         for i in range(args.epochs):
-            if args.profile and i == (args.epochs // 2):
+            if args.tensorboard and i == (args.epochs // 2):
                 print("---- collect tensorboard")
                 options = tf.profiler.experimental.ProfilerOptions(host_tracer_level = 3, python_tracer_level = 1, device_tracer_level = 1)
                 tf.profiler.experimental.start('./tensorboard_data', options = options)
             start_time = time.time()
             model.evaluate(test_model_input, steps=num_iter, batch_size=args.batch_size)
             end_time = time.time()
-            print("duration: ", end_time - start_time)
+            print("Iteration: {}, inference time: {}".format(i, end_time - start_time))
             if i > args.num_warmup:
                 total_time += end_time - start_time
                 total_sample += num_iter * args.batch_size
-            if args.profile and i == (args.epochs // 2):
+            if args.tensorboard and i == (args.epochs // 2):
                 tf.profiler.experimental.stop()
                 print("---- collect tensorboard end")
         latency = total_time / total_sample * 1000

@@ -9,7 +9,7 @@ function main {
     set_environment
 
     # requirements
-    pip uninstall h5py -y && conda install h5py==2.10.0 --no-deps -y
+    pip uninstall h5py -y && conda uninstall h5py -y && conda install h5py==2.10.0 --no-deps -y
     pip uninstall deepctr -y
     pip install deepctr==0.9.2
     cd examples
