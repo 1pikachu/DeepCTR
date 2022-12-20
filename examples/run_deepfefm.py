@@ -12,6 +12,8 @@ import argparse
 import tensorflow as tf
 
 
+tf.config.experimental.enable_tensor_float_32_execution(False)
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--train", action='store_true', help="training.")
 parser.add_argument("--evaluate", action='store_true', help="evaluation.")
