@@ -101,7 +101,7 @@ if __name__ == "__main__":
             start_time = time.time()
             model.evaluate(test_model_input, steps=num_iter, batch_size=args.batch_size)
             end_time = time.time()
-            print("Iteration: {}, inference time: {}".format(i, end_time - start_time))
+            print("Iteration: {}, inference time: {}".format(i, end_time - start_time), flush=True)
             if i > args.num_warmup:
                 total_time += end_time - start_time
                 total_sample += num_iter * args.batch_size
