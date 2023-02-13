@@ -81,6 +81,24 @@ def get_xy_fd(hash_flag=False):
     y = np.array([1, 0, 1])
     return x, y, feature_columns, behavior_feature_list
 
+def pad_dataset(x, y, batch_size):
+    total_item = len(y)
+    remain_item = total_item % batch_size
+    if remain_item > 0:
+        pad_item = batch_size - remain_item
+        for k in x:
+            v = x[k]
+            one_item = v[0]
+            if len(v.shape) > 1:
+                one_item = np.expand_dims(one_item, axis = 0)
+            pad_v = np.repeat(one_item, pad_item, axis = 0)
+            x[k] = np.concatenate((v, pad_v), axis = 0)
+        one_item = y[0]
+        if len(y.shape) > 1:
+            one_item = np.expand_dims(one_item, axis = 0)
+        pad_y = np.repeat(one_item, pad_item, axis = 0)
+        y = np.concatenate((y, pad_y), axis = 0)
+    return x, y
 
 if __name__ == "__main__":
     if tf.__version__ >= '2.0.0':
@@ -99,20 +117,19 @@ if __name__ == "__main__":
         print("## Evaluate Start:")
         total_time = 0.0
         total_sample = 0
-        num_iter = int(len(y) / args.batch_size)
-        num_iter = min(num_iter, args.num_iter)
+        x, y = pad_dataset(x, y, args.batch_size)
         for i in range(args.epochs):
             if args.tensorboard and i == args.epochs // 2:
                 print("---- collect tensorboard")
                 options = tf.profiler.experimental.ProfilerOptions(host_tracer_level = 3, python_tracer_level = 1, device_tracer_level = 1)
                 tf.profiler.experimental.start('./tensorboard_data', options = options)
             start_time = time.time()
-            model.evaluate(x, y, steps=num_iter, batch_size=args.batch_size)
+            model.evaluate(x, y, batch_size=args.batch_size)
             end_time = time.time()
             print("Iteration: {}, inference time: {}".format(i, end_time - start_time), flush=True)
             if i > args.num_warmup:
                 total_time += end_time - start_time
-                total_sample += num_iter * args.batch_size
+                total_sample += len(y)
             if args.tensorboard and i == args.epochs // 2:
                 tf.profiler.experimental.stop()
                 print("---- collect tensorboard end")
