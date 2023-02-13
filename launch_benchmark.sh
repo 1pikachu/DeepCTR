@@ -56,7 +56,7 @@ function generate_core {
         fi
 	OOB_EXEC_HEADER+=" ${OOB_EXTRA_HEADER} "
         printf " ${OOB_EXEC_HEADER} \
-	    python run_deepfefm.py --evaluate \
+	    python ${EXAMPLE_ARGS} --evaluate \
 		--epochs 20 --num_iter ${num_iter} --num_warmup 3 \
 		--precision ${precision} --batch_size $batch_size \
                 ${addtion_options} \
