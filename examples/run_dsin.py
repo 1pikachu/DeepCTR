@@ -3,6 +3,41 @@ import tensorflow as tf
 
 from deepctr.feature_column import SparseFeat, VarLenSparseFeat, DenseFeat,get_feature_names
 from deepctr.models import DSIN
+import argparse
+import time
+import os
+
+
+tf.config.experimental.enable_tensor_float_32_execution(False)
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--train", action='store_true', help="training.")
+parser.add_argument("--evaluate", action='store_true', help="evaluation.")
+# parser.add_argument("--evaluate", type=0, default='True', help="evaluation.")
+parser.add_argument("--predict", action='store_true', help="predict.")
+parser.add_argument("--profile", action='store_true', help="profile.")
+parser.add_argument("--tensorboard", action='store_true')
+parser.add_argument("-b", "--batch_size", type=int, default=1, help="batch size")
+parser.add_argument("--precision", type=str, default='float32', help="float32, int8 or float16")
+parser.add_argument("--epochs", type=int, default=10, help="training epochs")
+parser.add_argument("-i", "-n", "--num_iter", type=int, default=200)
+parser.add_argument("--num_warmup", type=int, default=3)
+args = parser.parse_args()
+print(args)
+
+if args.precision == 'float16' :
+    from tensorflow.keras import mixed_precision
+    policy = mixed_precision.Policy('mixed_float16')
+    mixed_precision.set_global_policy(policy)
+
+    from tensorflow.keras import layers
+    num_units = 64
+    dense1 = layers.Dense(num_units, activation='sigmoid', name='dense_1')
+    print(dense1.dtype_policy)
+
+# timeline
+import pathlib
+timeline_dir = str(pathlib.Path.cwd()) + '/timeline/' + str(os.getpid())
 
 
 def get_xy_fd(hash_flag=False):
@@ -52,10 +87,42 @@ if __name__ == "__main__":
         tf.compat.v1.disable_eager_execution()
 
     x, y, feature_columns, behavior_feature_list = get_xy_fd(True)
-
     model = DSIN(feature_columns, behavior_feature_list, sess_max_count=2,
                  dnn_hidden_units=[4, 4, 4], dnn_dropout=0.5, )
 
     model.compile('adam', 'binary_crossentropy',
                   metrics=['binary_crossentropy'])
-    history = model.fit(x, y, verbose=1, epochs=10, validation_split=0.5)
+    if args.train:
+        print("## Training Start:")
+        history = model.fit(x, y, verbose=1, epochs=10, validation_split=0.5)
+    if args.evaluate:
+        print("## Evaluate Start:")
+        total_time = 0.0
+        total_sample = 0
+        num_iter = int(len(y) / args.batch_size)
+        num_iter = min(num_iter, args.num_iter)
+        for i in range(args.epochs):
+            if args.tensorboard and i == args.epochs // 2:
+                print("---- collect tensorboard")
+                options = tf.profiler.experimental.ProfilerOptions(host_tracer_level = 3, python_tracer_level = 1, device_tracer_level = 1)
+                tf.profiler.experimental.start('./tensorboard_data', options = options)
+            start_time = time.time()
+            model.evaluate(x, y, steps=num_iter, batch_size=args.batch_size)
+            end_time = time.time()
+            print("Iteration: {}, inference time: {}".format(i, end_time - start_time), flush=True)
+            if i > args.num_warmup:
+                total_time += end_time - start_time
+                total_sample += num_iter * args.batch_size
+            if args.tensorboard and i == args.epochs // 2:
+                tf.profiler.experimental.stop()
+                print("---- collect tensorboard end")
+        latency = total_time / total_sample * 1000
+        throughput = total_sample / total_time
+        print("### Latency:: {:.2f} ms".format(latency))
+        print("### inference Throughput: {:.3f} samples/s".format(throughput))
+
+    # if args.predict:
+    #     # predict
+    #     pred_ans = model.predict(test_model_input, batch_size=256)
+    #     print("test LogLoss", round(log_loss(test[target].values, pred_ans), 4))
+    #     print("test AUC", round(roc_auc_score(test[target].values, pred_ans), 4))
